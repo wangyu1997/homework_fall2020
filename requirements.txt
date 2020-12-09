@@ -1,0 +1,9 @@
+numpy~=1.19.4
+torch~=1.7.0
+tensorboardX~=2.1
+gym~=0.17.2
+ipython~=6.4.0
+setuptools~=50.3.1.post20201107
+pyglet~=1.5.0
+tqdm~=4.52.0
+scipy~=1.5.4

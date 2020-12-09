@@ -1,13 +1,13 @@
 import numpy as np
 import time
 
+
 ############################################
 ############################################
 
-def sample_trajectory(env, policy, max_path_length, render=False, render_mode=('rgb_array')):
-
+def sample_trajectory(env, policy, max_path_length, render=False, render_mode=('rgb_array',)):
     # initialize env for the beginning of a new rollout
-    ob = TODO # HINT: should be the output of resetting the env
+    ob = env.reset()  # HINT: should be the output of resetting the env
 
     # init vars
     obs, acs, rewards, next_obs, terminals, image_obs = [], [], [], [], [], []
@@ -27,7 +27,7 @@ def sample_trajectory(env, policy, max_path_length, render=False, render_mode=('
 
         # use the most recent ob to decide what to do
         obs.append(ob)
-        ac = TODO # HINT: query the policy's get_action function
+        ac = policy.get_action(ob)  # HINT: query the policy's get_action function
         ac = ac[0]
         acs.append(ac)
 
@@ -41,7 +41,7 @@ def sample_trajectory(env, policy, max_path_length, render=False, render_mode=('
 
         # TODO end the rollout if the rollout ended
         # HINT: rollout can end due to done, or due to max_path_length
-        rollout_done = TODO # HINT: this is either 0 or 1
+        rollout_done = (steps == max_path_length)  # HINT: this is either 0 or 1
         terminals.append(rollout_done)
 
         if rollout_done:
@@ -49,23 +49,27 @@ def sample_trajectory(env, policy, max_path_length, render=False, render_mode=('
 
     return Path(obs, image_obs, acs, rewards, next_obs, terminals)
 
-def sample_trajectories(env, policy, min_timesteps_per_batch, max_path_length, render=False, render_mode=('rgb_array')):
+
+def sample_trajectories(env, policy, min_time_steps_per_batch, max_path_length, render=False,
+                        render_mode=('rgb_array',)):
     """
-        Collect rollouts until we have collected min_timesteps_per_batch steps.
+        Collect rollouts until we have collected min_time_steps_per_batch steps.
 
         TODO implement this function
         Hint1: use sample_trajectory to get each path (i.e. rollout) that goes into paths
-        Hint2: use get_pathlength to count the timesteps collected in each path
+        Hint2: use get_path_length to count the time_steps collected in each path
     """
-    timesteps_this_batch = 0
+    time_steps_this_batch = 0
     paths = []
-    while timesteps_this_batch < min_timesteps_per_batch:
+    while time_steps_this_batch < min_time_steps_per_batch:
+        path = sample_trajectory(env, policy, max_path_length, render, render_mode)
+        time_steps_this_batch += get_path_length(path)
+        paths.append(path)
 
-        TODO
+    return paths, time_steps_this_batch
 
-    return paths, timesteps_this_batch
 
-def sample_n_trajectories(env, policy, ntraj, max_path_length, render=False, render_mode=('rgb_array')):
+def sample_n_trajectories(env, policy, ntraj, max_path_length, render=False, render_mode=('rgb_array',)):
     """
         Collect ntraj rollouts.
 
@@ -73,10 +77,11 @@ def sample_n_trajectories(env, policy, ntraj, max_path_length, render=False, ren
         Hint1: use sample_trajectory to get each path (i.e. rollout) that goes into paths
     """
     paths = []
-
-    TODO
+    for _ in range(ntraj):
+        paths.append(sample_trajectory(env, policy, max_path_length, render, render_mode))
 
     return paths
+
 
 ############################################
 ############################################
@@ -86,17 +91,17 @@ def Path(obs, image_obs, acs, rewards, next_obs, terminals):
         Take info (separate arrays) from a single rollout
         and return it in a single dictionary
     """
-    if image_obs != []:
+    if image_obs:
         image_obs = np.stack(image_obs, axis=0)
-    return {"observation" : np.array(obs, dtype=np.float32),
-            "image_obs" : np.array(image_obs, dtype=np.uint8),
-            "reward" : np.array(rewards, dtype=np.float32),
-            "action" : np.array(acs, dtype=np.float32),
+    return {"observation": np.array(obs, dtype=np.float32),
+            "image_obs": np.array(image_obs, dtype=np.uint8),
+            "reward": np.array(rewards, dtype=np.float32),
+            "action": np.array(acs, dtype=np.float32),
             "next_observation": np.array(next_obs, dtype=np.float32),
             "terminal": np.array(terminals, dtype=np.float32)}
 
 
-def convert_listofrollouts(paths, concat_rew=True):
+def convert_list_of_rollouts(paths, concat_rew=True):
     """
         Take a list of rollout dictionaries
         and return separate arrays,
@@ -112,8 +117,9 @@ def convert_listofrollouts(paths, concat_rew=True):
     terminals = np.concatenate([path["terminal"] for path in paths])
     return observations, actions, rewards, next_observations, terminals
 
+
 ############################################
 ############################################
 
-def get_pathlength(path):
+def get_path_length(path):
     return len(path["reward"])
